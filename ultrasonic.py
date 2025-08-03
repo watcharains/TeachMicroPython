@@ -19,3 +19,4 @@ def ultra():
        signalon = utime.ticks_us()
    timepassed = signalon - signaloff
    distance = (timepassed * 0.0343) / 2
+   return distance
