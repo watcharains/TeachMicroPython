@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>micro:bit BLE Robot Controller</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafc;
+      --border: #e2e8f0;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --brand: #2563eb;
+      --brand-hover: #1d4ed8;
+      --brand-ink: #ffffff;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --success: #16a34a;
+      --success-soft: #f0fdf4;
+      --warning: #d97706;
+      --warning-soft: #fffbeb;
+      --led-on: #ef4444;
+      --led-off: #1e293b;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-4) var(--space-6);
+      box-shadow: var(--shadow);
+      margin-bottom: var(--space-6);
+    }
+
+    .title-group h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .title-group p {
+      margin: 2px 0 0;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .connection-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .status-pill.connected {
+      background: var(--success-soft);
+      border-color: #bbf7d0;
+      color: var(--success);
+    }
+
+    .status-pill.disconnected {
+      background: var(--danger-soft);
+      border-color: #fecaca;
+      color: var(--danger);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .btn {
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: var(--brand-ink);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--brand-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-subtle);
+    }
+
+    /* Alert / status notice */
+    .notice {
+      display: none;
+      margin-bottom: var(--space-6);
+      padding: var(--space-4);
+      border-radius: var(--radius);
+      border: 1px solid #fde68a;
+      background: var(--warning-soft);
+      color: #92400e;
+      font-size: 0.875rem;
+    }
+
+    .notice.visible {
+      display: block;
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+    }
+
+    @media (min-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1.35fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--space-6);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .card-subtitle {
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+
+    /* Controller Pad */
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(84px, 116px));
+      grid-template-rows: repeat(3, 88px);
+      gap: var(--space-3);
+      justify-content: center;
+      margin: var(--space-4) 0;
+    }
+
+    .cmd-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: var(--surface-subtle);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--ink);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: all 0.12s ease;
+      padding: var(--space-2);
+    }
+
+    .cmd-btn:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+
+    .cmd-btn:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    .cmd-btn.active,
+    .cmd-btn:active {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: var(--brand-ink);
+      transform: scale(0.97);
+    }
+
+    .cmd-btn.stop-btn.active,
+    .cmd-btn.stop-btn:active {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #ffffff;
+    }
+
+    .cmd-key {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .cmd-label {
+      font-size: 0.75rem;
+      color: inherit;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+
+    .pos-w { grid-column: 2; grid-row: 1; }
+    .pos-a { grid-column: 1; grid-row: 2; }
+    .pos-x { grid-column: 2; grid-row: 2; }
+    .pos-d { grid-column: 3; grid-row: 2; }
+    .pos-s { grid-column: 2; grid-row: 3; }
+
+    /* LED Matrix Preview & UART Telemetry */
+    .led-board-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: #0f172a;
+      border-radius: 12px;
+      color: #f8fafc;
+      margin-bottom: var(--space-4);
+    }
+
+    .led-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 24px);
+      grid-template-rows: repeat(5, 24px);
+      gap: 8px;
+      padding: var(--space-3);
+      background: #020617;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+
+    .led-cell {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: var(--led-off);
+      transition: background-color 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .led-cell.on {
+      background: var(--led-on);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+    }
+
+    .led-caption {
+      font-size: 0.8125rem;
+      color: #cbd5e1;
+      font-family: var(--mono);
+    }
+
+    /* Command Mapping Table */
+    .mapping-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mapping-table th {
+      color: var(--muted);
+      font-weight: 600;
+      background: var(--surface-subtle);
+    }
+
+    .mapping-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      font-family: var(--mono);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div class="title-group">
+        <h1>BBC micro:bit BLE Robot Controller</h1>
+        <p>Nordic UART Service (macOS &amp; Windows compatible, delimiter: <code>\n</code>)</p>
+      </div>
+      <div class="connection-bar">
+        <div id="statusPill" class="status-pill">
+          <span class="status-dot"></span>
+          <span id="statusText">Not Connected</span>
+        </div>
+        <button id="connectBtn" type="button" class="btn btn-primary">Connect micro:bit</button>
+        <button id="disconnectBtn" type="button" class="btn btn-secondary" disabled>Disconnect</button>
+      </div>
+    </header>
+
+    <div id="noticeBox" class="notice" role="status" aria-live="polite"></div>
+
+    <main class="main-grid">
+      <section class="card" aria-labelledby="controlsHeading">
+        <div class="card-header">
+          <h2 id="controlsHeading" class="card-title">UART Command Pad</h2>
+          <span class="card-subtitle">Click buttons or press W, A, S, D, X keys</span>
+        </div>
+
+        <div class="dpad-grid">
+          <button type="button" class="cmd-btn pos-w" data-cmd="W">
+            <span class="cmd-key">W</span>
+            <span class="cmd-label">Arrow North ↑</span>
+          </button>
+
+          <button type="button" class="cmd-btn pos-a" data-cmd="A">
+            <span class="cmd-key">A</span>
+            <span class="cmd-label">Arrow South ↓</span>
+          </button>
+
+          <button type="button" class="cmd-btn stop-btn pos-x" data-cmd="X">
+            <span class="cmd-key">X</span>
+            <span class="cmd-label">Stop Icon ■</span>
+          </button>
+
+          <button type="button" class="cmd-btn pos-d" data-cmd="D">
+            <span class="cmd-key">D</span>
+            <span class="cmd-label">Arrow East →</span>
+          </button>
+
+          <button type="button" class="cmd-btn pos-s" data-cmd="S">
+            <span class="cmd-key">S</span>
+            <span class="cmd-label">Arrow West ←</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="matrixHeading">
+        <div class="card-header">
+          <h2 id="matrixHeading" class="card-title">micro:bit State &amp; Protocol</h2>
+          <span id="lastSentLabel" class="card-subtitle">Last sent: None</span>
+        </div>
+
+        <div class="led-board-wrap">
+          <div id="ledGrid" class="led-grid" aria-label="micro:bit 5x5 LED Matrix"></div>
+          <div id="ledCaption" class="led-caption">on start: Heart Icon</div>
+        </div>
+
+        <table class="mapping-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>UART Payload</th>
+              <th>MakeCode Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>W</code></td>
+              <td><code>"W\n"</code></td>
+              <td><code>show arrow North</code></td>
+            </tr>
+            <tr>
+              <td><code>A</code></td>
+              <td><code>"A\n"</code></td>
+              <td><code>show arrow South</code></td>
+            </tr>
+            <tr>
+              <td><code>S</code></td>
+              <td><code>"S\n"</code></td>
+              <td><code>show arrow West</code></td>
+            </tr>
+            <tr>
+              <td><code>D</code></td>
+              <td><code>"D\n"</code></td>
+              <td><code>show arrow East</code></td>
+            </tr>
+            <tr>
+              <td><code>X</code></td>
+              <td><code>"X\n"</code></td>
+              <td><code>show icon (square)</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Nordic UART Service UUIDs used by BBC micro:bit
+    const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    // On BBC micro:bit DAL, 6e400003 is the client-write (RX) characteristic;
+    // standard NUS also defines 6e400002. We inspect the service characteristics
+    // dynamically so both v1/v2 firmware and macOS/Windows BLE stacks work reliably.
+    const UART_WRITE_UUIDS = [
+      '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
+      '6e400002-b5a3-f393-e0a9-e50e24dcca9e'
+    ];
+
+    // 5x5 LED patterns matching the user's MakeCode blocks
+    const LED_PATTERNS = {
+      HEART: [
+        [0, 1, 0, 1, 0],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      CONNECTED: [
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 1, 0],
+        [1, 0, 1, 0, 0],
+        [0, 1, 0, 0, 0]
+      ],
+      DISCONNECTED: [
+        [1, 0, 0, 0, 1],
+        [0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0],
+        [1, 0, 0, 0, 1]
+      ],
+      W: [ // North Arrow
+        [0, 0, 1, 0, 0],
+        [0, 1, 1, 1, 0],
+        [1, 0, 1, 0, 1],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      A: [ // South Arrow (as programmed in user's blocks for "A")
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [1, 0, 1, 0, 1],
+        [0, 1, 1, 1, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      S: [ // West Arrow (as programmed in user's blocks for "S")
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 0, 0],
+        [1, 1, 1, 1, 1],
+        [0, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      D: [ // East Arrow (as programmed in user's blocks for "D")
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 0],
+        [1, 1, 1, 1, 1],
+        [0, 0, 0, 1, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      X: [ // Small square icon (as programmed in user's blocks for "X")
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 0, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0]
+      ]
+    };
+
+    const PATTERN_LABELS = {
+      HEART: 'on start: show icon (Heart)',
+      CONNECTED: 'on bluetooth connected: show icon (Check)',
+      DISCONNECTED: 'on bluetooth disconnected: show icon (X)',
+      W: 'command = "W" → show arrow North',
+      A: 'command = "A" → show arrow South',
+      S: 'command = "S" → show arrow West',
+      D: 'command = "D" → show arrow East',
+      X: 'command = "X" → show icon (Square)'
+    };
+
+    let bleDevice = null;
+    let uartWriteCharacteristic = null;
+    let writeQueue = Promise.resolve();
+
+    const statusPill = document.getElementById('statusPill');
+    const statusText = document.getElementById('statusText');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const noticeBox = document.getElementById('noticeBox');
+    const ledGrid = document.getElementById('ledGrid');
+    const ledCaption = document.getElementById('ledCaption');
+    const lastSentLabel = document.getElementById('lastSentLabel');
+    const cmdButtons = document.querySelectorAll('.cmd-btn');
+
+    // Initialize 5x5 LED cells
+    const ledCells = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'led-cell';
+        ledGrid.appendChild(cell);
+        ledCells.push(cell);
+      }
+    }
+
+    function renderMatrix(key) {
+      const pattern = LED_PATTERNS[key] || LED_PATTERNS.HEART;
+      pattern.forEach((row, r) => {
+        row.forEach((val, c) => {
+          const idx = r * 5 + c;
+          ledCells[idx].classList.toggle('on', val === 1);
+        });
+      });
+      ledCaption.textContent = PATTERN_LABELS[key] || '';
+    }
+
+    function showNotice(message) {
+      if (!message) {
+        noticeBox.textContent = '';
+        noticeBox.classList.remove('visible');
+        return;
+      }
+      noticeBox.textContent = message;
+      noticeBox.classList.add('visible');
+    }
+
+    function updateConnectionUI(state, deviceName) {
+      statusPill.classList.remove('connected', 'disconnected');
+      if (state === 'connected') {
+        statusPill.classList.add('connected');
+        statusText.textContent = `Connected${deviceName ? ': ' + deviceName : ''}`;
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+      } else if (state === 'disconnected') {
+        statusPill.classList.add('disconnected');
+        statusText.textContent = 'Disconnected';
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+      } else {
+        statusText.textContent = state;
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+      }
+    }
+
+    async function findWritableCharacteristic(service) {
+      const characteristics = await service.getCharacteristics();
+      // First look for preferred UART write UUIDs that have write/writeWithoutResponse
+      for (const uuid of UART_WRITE_UUIDS) {
+        const match = characteristics.find(c => c.uuid.toLowerCase() === uuid);
+        if (match && (match.properties.write || match.properties.writeWithoutResponse)) {
+          return match;
+        }
+      }
+      // Fallback: any characteristic in the UART service that supports writing
+      const writable = characteristics.find(
+        c => c.properties.write || c.properties.writeWithoutResponse
+      );
+      if (writable) return writable;
+
+      // Direct lookup fallback
+      return await service.getCharacteristic(UART_WRITE_UUIDS[0]);
+    }
+
+    async function connectMicrobit() {
+      showNotice('');
+      if (!navigator.bluetooth) {
+        showNotice(
+          'Web Bluetooth API is not available in this browser or context. Please open this app in Google Chrome or Microsoft Edge on macOS or Windows.'
+        );
+        return;
+      }
+
+      try {
+        updateConnectionUI('Pairing...');
+        // Using namePrefix + optionalServices works across both macOS CoreBluetooth and Windows WinRT BLE
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'BBC micro:bit' }],
+          optionalServices: [UART_SERVICE_UUID]
+        });
+
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        updateConnectionUI('Connecting GATT...');
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(UART_SERVICE_UUID);
+        uartWriteCharacteristic = await findWritableCharacteristic(service);
+
+        updateConnectionUI('connected', bleDevice.name);
+        renderMatrix('CONNECTED');
+      } catch (err) {
+        uartWriteCharacteristic = null;
+        updateConnectionUI('Not Connected');
+        if (err && err.name === 'NotFoundError') {
+          // User cancelled the pairing dialog
+          return;
+        }
+        showNotice(
+          `Bluetooth connection error: ${err.message || err}. If running inside a sandboxed preview, download index.html and open it in Chrome or Edge on macOS/Windows.`
+        );
+      }
+    }
+
+    function onDisconnected() {
+      uartWriteCharacteristic = null;
+      updateConnectionUI('disconnected');
+      renderMatrix('DISCONNECTED');
+    }
+
+    function disconnectMicrobit() {
+      if (bleDevice && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+      } else {
+        onDisconnected();
+      }
+    }
+
+    // Write helper compatible with both macOS and Windows Web Bluetooth stacks
+    function enqueueUartWrite(payloadString) {
+      if (!uartWriteCharacteristic) {
+        showNotice('Not connected to a micro:bit. Click "Connect micro:bit" to send commands over BLE.');
+        return;
+      }
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(payloadString);
+
+      writeQueue = writeQueue
+        .then(async () => {
+          if (!uartWriteCharacteristic) return;
+          const props = uartWriteCharacteristic.properties;
+          if (props && props.write && typeof uartWriteCharacteristic.writeValueWithResponse === 'function') {
+            await uartWriteCharacteristic.writeValueWithResponse(data);
+          } else if (
+            props &&
+            props.writeWithoutResponse &&
+            typeof uartWriteCharacteristic.writeValueWithoutResponse === 'function'
+          ) {
+            await uartWriteCharacteristic.writeValueWithoutResponse(data);
+          } else {
+            await uartWriteCharacteristic.writeValue(data);
+          }
+        })
+        .catch(err => {
+          showNotice(`Failed to send UART command: ${err.message || err}`);
+        });
+    }
+
+    function triggerCommand(cmd) {
+      const validCommands = ['W', 'A', 'S', 'D', 'X'];
+      const normalized = String(cmd).toUpperCase();
+      if (!validCommands.includes(normalized)) return;
+
+      // MakeCode reads until new line () -> "\n"
+      const payload = normalized + '\n';
+      lastSentLabel.textContent = `Last sent: "${normalized}\\n"`;
+      renderMatrix(normalized);
+      enqueueUartWrite(payload);
+    }
+
+    // Bind button events
+    cmdButtons.forEach(btn => {
+      const cmd = btn.getAttribute('data-cmd');
+      btn.addEventListener('click', () => triggerCommand(cmd));
+    });
+
+    // Bind keyboard events (W, A, S, D, X)
+    const activeKeys = new Set();
+    window.addEventListener('keydown', e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      const key = e.key.toUpperCase();
+      if (['W', 'A', 'S', 'D', 'X'].includes(key)) {
+        e.preventDefault();
+        if (activeKeys.has(key)) return;
+        activeKeys.add(key);
+        const btn = document.querySelector(`.cmd-btn[data-cmd="${key}"]`);
+        if (btn) btn.classList.add('active');
+        triggerCommand(key);
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      const key = e.key.toUpperCase();
+      activeKeys.delete(key);
+      const btn = document.querySelector(`.cmd-btn[data-cmd="${key}"]`);
+      if (btn) btn.classList.remove('active');
+    });
+
+    connectBtn.addEventListener('click', connectMicrobit);
+    disconnectBtn.addEventListener('click', disconnectMicrobit);
+
+    // Initial state matches "on start" block (Heart icon)
+    renderMatrix('HEART');
+  </script>
+</body>
+</html>
