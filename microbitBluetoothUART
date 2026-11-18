@@ -1,0 +1,40 @@
+bluetooth.onBluetoothConnected(function () {
+    basic.showIcon(IconNames.Yes)
+})
+bluetooth.onBluetoothDisconnected(function () {
+    basic.showIcon(IconNames.No)
+})
+bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), function () {
+    // Read the incoming command
+    command = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine))
+    // Add your robot motor FORWARD code here!
+    // Add your robot motor BACKWARD code here!
+    // Add your robot motor LEFT code here!
+    // Add your robot motor RIGHT code here!
+    // Add your robot motor STOP code here!
+    if (command == "W") {
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Forward, 128)
+        motionbit.runMotor(MotionBitMotorChannel.M2, MotionBitMotorDirection.Forward, 128)
+        basic.showArrow(ArrowNames.North)
+    } else if (command == "A") {
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Backward, 128)
+        motionbit.runMotor(MotionBitMotorChannel.M2, MotionBitMotorDirection.Backward, 128)
+        basic.showArrow(ArrowNames.South)
+    } else if (command == "S") {
+        basic.showArrow(ArrowNames.West)
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Backward, 128)
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Backward, 128)
+    } else if (command == "D") {
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Forward, 128)
+        motionbit.runMotor(MotionBitMotorChannel.M1, MotionBitMotorDirection.Forward, 128)
+        basic.showArrow(ArrowNames.East)
+    } else if (command == "X") {
+        motionbit.brakeMotor(MotionBitMotorChannel.M1)
+        motionbit.brakeMotor(MotionBitMotorChannel.M2)
+        basic.showIcon(IconNames.SmallSquare)
+    }
+})
+let command = ""
+// Start the Nordic UART service when the Micro:bit turns on
+bluetooth.startUartService()
+basic.showIcon(IconNames.Heart)
